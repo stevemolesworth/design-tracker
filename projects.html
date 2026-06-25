@@ -233,6 +233,7 @@
       </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
     <script>
       (function () {
@@ -254,6 +255,21 @@
     </script>
     <script>
       let data = loadData();
+
+      function showImportSuccess(label) {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        let toast = document.getElementById('import-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'import-toast';
+          toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#007f3b;color:#fff;padding:14px 20px;font-size:15px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:320px;opacity:0;transition:opacity .3s';
+          document.body.appendChild(toast);
+        }
+        toast.textContent = `✓ Successfully imported: ${label}`;
+        toast.style.opacity = '1';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+      }
 
       function populate() {
         const container = document.getElementById('project-list');
@@ -853,6 +869,7 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
         saveData(data);
         editProject(p.id);
         populate();
+        showImportSuccess(p.name);
       }
     </script>
   </body>

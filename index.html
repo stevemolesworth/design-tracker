@@ -118,6 +118,7 @@
                     <th class="nhsuk-table__header" scope="col">Status</th>
                     <th class="nhsuk-table__header" scope="col">Owner</th>
                     <th class="nhsuk-table__header" scope="col">Last updated</th>
+                    <th class="nhsuk-table__header" scope="col" style="width:80px"></th>
                   </tr>
                 </thead>
                 <tbody class="nhsuk-table__body" id="tracker-tbody"
@@ -195,8 +196,19 @@
           </div>
 
           <div class="nhsuk-form-group" id="progress-group">
-            <label class="nhsuk-label nhsuk-label--s" for="f-progress">Progress (%)</label>
-            <input class="nhsuk-input nhsuk-input--width-5" id="f-progress" type="number" min="0" max="100" value="0" />
+            <label class="nhsuk-label nhsuk-label--s" for="f-progress">Progress</label>
+            <select class="nhsuk-select" id="f-progress">
+              <option value="10">10%</option>
+              <option value="20">20%</option>
+              <option value="30">30%</option>
+              <option value="40">40%</option>
+              <option value="50">50%</option>
+              <option value="60">60%</option>
+              <option value="70">70%</option>
+              <option value="80">80%</option>
+              <option value="90">90%</option>
+              <option value="100">100%</option>
+            </select>
           </div>
 
           <div class="nhsuk-form-group">
@@ -250,6 +262,13 @@
             </div>
           </div>
 
+          <hr class="nhsuk-section-break nhsuk-section-break--m nhsuk-section-break--visible" style="margin:24px 0 16px" />
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+            <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="exportItemSchema()">Export AI schema prompt</button>
+            <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="document.getElementById('item-import-input').click()">Import item JSON</button>
+            <input type="file" id="item-import-input" accept=".json" style="display:none" onchange="importItemFile(event)" />
+          </div>
+
           <div class="modal-form-footer">
             <button type="submit" class="nhsuk-button">Save</button>
             <button type="button" class="nhsuk-button nhsuk-button--secondary" onclick="closeModal()">Cancel</button>
@@ -259,6 +278,7 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
     <script>
       (function () {
@@ -469,6 +489,9 @@
             <td class="nhsuk-table__cell">${badge(r)}</td>
             <td class="nhsuk-table__cell">${esc(r.owner) || '—'}</td>
             <td class="nhsuk-table__cell time-ago" title="${fmtDate(r.updatedAt)}">${timeAgo(r.updatedAt)}</td>
+            <td class="nhsuk-table__cell" style="text-align:right;padding-right:8px">
+              <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="openEditForm(${r.id})">Edit</button>
+            </td>
           </tr>`;
       }
 
@@ -495,6 +518,9 @@
                 <a href="#item-${f.id}"><strong>${esc(f.name)}</strong></a>
                 ${f.description ? `<span style="font-weight:normal;color:#425563;font-size:14px"> — ${esc(f.description)}</span>` : ''}
               </td>
+              <td class="nhsuk-table__cell" style="text-align:right;padding-right:8px">
+                <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="openEditForm(${f.id})">Edit</button>
+              </td>
             </tr>`;
 
           if (visReqs.length) {
@@ -504,7 +530,8 @@
               <td class="nhsuk-table__cell"></td>
               <td class="nhsuk-table__cell" colspan="4" style="padding-left:24px;color:#768692;font-size:14px">
                 ${filtering ? 'No matching requirements' : 'No requirements'}
-              </td></tr>`;
+              </td>
+              <td class="nhsuk-table__cell"></td></tr>`;
           }
         });
 
@@ -516,12 +543,13 @@
             <td class="nhsuk-table__cell"></td>
             <td class="nhsuk-table__cell" colspan="4">
               <a href="#unclassified"><strong>Unclassified requirements</strong></a>
-            </td></tr>`;
+            </td>
+            <td class="nhsuk-table__cell"></td></tr>`;
           visU.forEach(r => { html += reqRow(r, ''); });
         }
 
         if (filtering && totalVisible === 0) {
-          html = `<tr class="nhsuk-table__row"><td class="nhsuk-table__cell" colspan="5" style="color:#768692;text-align:center;padding:24px">No items match your filters.</td></tr>`;
+          html = `<tr class="nhsuk-table__row"><td class="nhsuk-table__cell" colspan="6" style="color:#768692;text-align:center;padding:24px">No items match your filters.</td></tr>`;
         }
 
         document.getElementById('tracker-tbody').innerHTML = html;
@@ -538,7 +566,7 @@
           dlRow('Audiences',    item.audiences ? esc(item.audiences) : '<span style="color:#768692">—</span>'),
           dlRow('Location',     item.location  ? esc(item.location)  : '<span style="color:#768692">—</span>'),
           dlRow('Status',       badge(item)),
-          dlRow('Progress',     item.status === 'In progress' ? `${item.progress || 0}%` : '<span style="color:#768692">—</span>'),
+          dlRow('Progress',     item.progress ? `${item.progress}%` : '<span style="color:#768692">—</span>'),
           dlRow('Owner',        item.owner      ? esc(item.owner)      : '<span style="color:#768692">—</span>'),
           dlRow('Updated by',   item.updatedBy  ? esc(item.updatedBy)  : '<span style="color:#768692">—</span>'),
           dlRow('Spec',         spec            ? spec                 : '<span style="color:#768692">—</span>'),
@@ -761,7 +789,7 @@
         document.getElementById('f-audiences').value        = item.audiences        || '';
         document.getElementById('f-location').value         = item.location         || '';
         document.getElementById('f-status').value           = item.status;
-        document.getElementById('f-progress').value         = item.progress         || 0;
+        document.getElementById('f-progress').value         = item.progress || 10;
         document.getElementById('f-owner').value            = item.owner            || '';
         document.getElementById('f-updated-by').value       = item.updatedBy        || '';
         document.getElementById('f-spec-id').value          = item.specId           || '';
@@ -771,7 +799,7 @@
         document.getElementById('f-open-questions').value   = item.openQuestions    || '';
         document.getElementById('f-why').value              = item.why              || '';
         document.getElementById('f-parent-group').style.display  = item.type === 'requirement' ? 'block' : 'none';
-        document.getElementById('progress-group').style.display  = item.status === 'In progress' ? 'block' : 'none';
+        document.getElementById('progress-group').style.display  = statusHasProgress(item.status) ? 'block' : 'none';
         document.getElementById('delete-btn').style.display      = 'inline-block';
         document.getElementById('modal-title').textContent = `Editing: ${item.name}`;
         editingAtlasIds = [...(item.atlasComponentIds || [])];
@@ -791,9 +819,13 @@
           document.getElementById('f-type').value === 'requirement' ? 'block' : 'none';
       }
 
+      function statusHasProgress(val) {
+        return val && val !== 'Backlog' && val !== 'Not started';
+      }
+
       function onStatusChange() {
         document.getElementById('progress-group').style.display =
-          document.getElementById('f-status').value === 'In progress' ? 'block' : 'none';
+          statusHasProgress(document.getElementById('f-status').value) ? 'block' : 'none';
       }
 
       document.getElementById('item-form').addEventListener('submit', function (e) {
@@ -815,7 +847,7 @@
           audiences:      document.getElementById('f-audiences').value.trim(),
           location:       document.getElementById('f-location').value.trim(),
           status,
-          progress:       status === 'In progress' ? (parseInt(document.getElementById('f-progress').value) || 0) : 0,
+          progress:       statusHasProgress(status) ? (parseInt(document.getElementById('f-progress').value) || 0) : 0,
           owner:          document.getElementById('f-owner').value,
           updatedBy:      document.getElementById('f-updated-by').value,
           specId:         document.getElementById('f-spec-id').value.trim(),
@@ -1087,6 +1119,124 @@
       }
 
       document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+      /* ── Item AI schema export / import ─────────────────────── */
+
+      function itemSchemaPromptText() {
+        const type = document.getElementById('f-type').value || 'requirement';
+        const isReq = type === 'requirement';
+        const statusNames = data.statuses.map(s => s.name).join(', ');
+        const ownerNames  = (proj().owners || []).map(o => [o.firstName, o.lastName].filter(Boolean).join(' ')).filter(Boolean).join(', ') || 'First Last';
+        const audienceNames = (proj().audiences || []).map(a => a.name).filter(Boolean).join(', ') || 'Members, Admins';
+
+        return `# ${isReq ? 'Requirement' : 'Feature'} — AI Schema Prompt
+
+Share this with an AI assistant to generate the content for this ${isReq ? 'requirement' : 'feature'}. Paste the AI's JSON response into a \`.json\` file, then import it using the "Import item JSON" button.
+
+---
+
+## Prompt to give the AI
+
+> Please provide content for the following ${isReq ? 'requirement' : 'feature'} using the exact JSON format below.
+> Write in a clear, human, conversational tone — not ticket-style notation.
+> All fields except \`name\` are optional — omit or use empty strings if not applicable.
+
+---
+
+## Required JSON format
+
+\`\`\`json
+{
+  "itemExport": true,
+  "type": "${type}",
+  "name": "${isReq ? 'Requirement' : 'Feature'} name",
+  "description": "What is this? What does good look like? Describe the jobs to be done.",${isReq ? `
+  "audiences": "${audienceNames}",
+  "location": "e.g. Community / Groups / Members",` : ''}
+  "status": "Not started",
+  "owner": "${ownerNames.split(', ')[0] || 'First Last'}",
+  "specId": "SPEC-001",
+  "specLink": "",
+  "links": "[Figma](https://figma.com)",
+  "designThinking": "What approach are we thinking about taking? What are we exploring?",
+  "openQuestions": "What are we still working through? What do we need to decide?",
+  "why": "When the solution is done — what are we excited about? Why does this work?"
+}
+\`\`\`
+
+---
+
+## Rules
+
+- \`type\` must be \`"${type}"\` — do not change it
+- \`status\` must be one of: ${statusNames}
+- \`owner\` should be one of the project team members: ${ownerNames}${isReq ? `
+- \`audiences\` should reference project audiences: ${audienceNames}` : ''}
+- \`links\` supports markdown, e.g. \`[Figma](https://figma.com)\`
+- Write \`designThinking\`, \`openQuestions\`, and \`why\` in plain, human language — these are read by stakeholders`;
+      }
+
+      function exportItemSchema() {
+        const type = document.getElementById('f-type').value || 'requirement';
+        const name = document.getElementById('f-name').value.trim();
+        const slug = (name || type).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        triggerDownload(itemSchemaPromptText(), `${slug}-ai-schema-prompt.md`, 'text/markdown');
+      }
+
+      function importItemFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          try {
+            const imp = JSON.parse(ev.target.result);
+            if (!imp.itemExport) throw new Error('Not an item export');
+            const currentType = document.getElementById('f-type').value;
+            if (imp.type && imp.type !== currentType) {
+              alert(`This file is for a "${imp.type}" but you are editing a "${currentType}". Please open the correct item first.`);
+              return;
+            }
+            const hasData = ['description','designThinking','openQuestions','why','links'].some(
+              f => document.getElementById(`f-${f.replace(/([A-Z])/g, '-$1').toLowerCase()}`).value.trim()
+            );
+            if (hasData && !confirm('This item already has content. Importing will overwrite the description, design thinking, open questions, why, links, audiences, location, status, owner and spec fields.\n\nContinue?')) return;
+            if (imp.name)          document.getElementById('f-name').value           = imp.name;
+            if (imp.description)   document.getElementById('f-description').value    = imp.description;
+            if (imp.audiences)     document.getElementById('f-audiences').value      = imp.audiences;
+            if (imp.location)      document.getElementById('f-location').value       = imp.location;
+            if (imp.status)      { document.getElementById('f-status').value         = imp.status; onStatusChange(); }
+            if (imp.owner)         document.getElementById('f-owner').value          = imp.owner;
+            if (imp.specId)        document.getElementById('f-spec-id').value        = imp.specId;
+            if (imp.specLink)      document.getElementById('f-spec-link').value      = imp.specLink;
+            if (imp.links)         document.getElementById('f-links').value          = imp.links;
+            if (imp.designThinking) document.getElementById('f-design-thinking').value = imp.designThinking;
+            if (imp.openQuestions)  document.getElementById('f-open-questions').value  = imp.openQuestions;
+            if (imp.why)            document.getElementById('f-why').value             = imp.why;
+            showImportSuccess(imp.name || imp.type || 'item');
+          } catch {
+            alert('Could not import — make sure it is a valid item JSON export.');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      }
+
+      /* ── Confetti + toast ────────────────────────────────────── */
+
+      function showImportSuccess(label) {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        let toast = document.getElementById('import-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'import-toast';
+          toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:#007f3b;color:#fff;padding:14px 20px;font-size:15px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:320px;opacity:0;transition:opacity .3s';
+          document.body.appendChild(toast);
+        }
+        toast.textContent = `✓ Successfully imported: ${label}`;
+        toast.style.opacity = '1';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+      }
 
       initPage();
     </script>
