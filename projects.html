@@ -25,6 +25,9 @@
       .owner-drag-handle { cursor: grab; color: #768692; font-size: 18px; flex-shrink: 0; }
       .owner-drag-handle:active { cursor: grabbing; }
       .owner-meta { flex: 1; font-size: 14px; }
+      .audience-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #d8dde0; margin-bottom: 6px; }
+      .audience-row:hover { border-color: #005eb8; }
+      .audience-meta { flex: 1; font-size: 14px; }
       .schema-panel { background: #fff; border: 1px solid #d8dde0; padding: 20px 24px; margin-bottom: 24px; }
       .schema-panel pre { background: #f0f4f5; border: 1px solid #d8dde0; padding: 16px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 12px 0; }
       .copy-success { color: #007f3b; font-weight: 600; font-size: 14px; margin-left: 8px; display: none; }
@@ -61,6 +64,29 @@
                 <div class="nhsuk-form-group">
                   <label class="nhsuk-label nhsuk-label--s" for="f-description">Description</label>
                   <textarea class="nhsuk-textarea" id="f-description" rows="3"></textarea>
+                </div>
+
+                <!-- Create-time identity fields — shown only when adding a new project -->
+                <div id="project-create-meta">
+                  <h3 class="nhsuk-heading-s" style="margin-bottom:8px">Project identity</h3>
+                  <div class="nhsuk-form-group">
+                    <label class="nhsuk-label nhsuk-label--s" for="f-codename">Code name</label>
+                    <div class="nhsuk-hint">Short internal name, e.g. community-v2</div>
+                    <input class="nhsuk-input nhsuk-input--width-20" id="f-codename" type="text" autocomplete="off" />
+                  </div>
+                  <div class="nhsuk-form-group">
+                    <label class="nhsuk-label nhsuk-label--s" for="f-createdby">Created by</label>
+                    <input class="nhsuk-input nhsuk-input--width-20" id="f-createdby" type="text" autocomplete="off" />
+                  </div>
+                  <div class="nhsuk-form-group">
+                    <label class="nhsuk-label nhsuk-label--s" for="f-createdat">Date</label>
+                    <input class="nhsuk-input nhsuk-input--width-10" id="f-createdat" type="date" />
+                  </div>
+                </div>
+
+                <!-- Read-only identity — shown only when editing an existing project -->
+                <div id="project-meta-display" style="display:none;margin-bottom:20px;padding:12px 16px;background:#f0f4f5;border-left:4px solid #d8dde0">
+                  <p class="nhsuk-body-s" style="margin:0;color:#425563" id="project-meta-text"></p>
                 </div>
 
                 <h3 class="nhsuk-heading-s" style="margin-bottom:8px">Primary contact</h3>
@@ -132,6 +158,31 @@
                   </div>
 
                   <ul class="owner-list" id="owner-list"></ul>
+
+                  <!-- Audiences section -->
+                  <hr class="nhsuk-section-break nhsuk-section-break--m nhsuk-section-break--visible" style="margin:24px 0 20px" />
+                  <h3 class="nhsuk-heading-s" style="margin-bottom:12px">Audiences</h3>
+
+                  <div style="background:#fff;border:1px solid #d8dde0;padding:16px;margin-bottom:12px">
+                    <form id="audience-form" novalidate>
+                      <input type="hidden" id="af-id" />
+                      <div class="nhsuk-form-group" style="margin:0 0 12px">
+                        <label class="nhsuk-label nhsuk-label--s" for="af-name">Name <span aria-hidden="true" style="color:#d5281b">*</span></label>
+                        <input class="nhsuk-input nhsuk-input--width-20" id="af-name" type="text" autocomplete="off" />
+                      </div>
+                      <div class="nhsuk-form-group" style="margin:0 0 12px">
+                        <label class="nhsuk-label nhsuk-label--s" for="af-description">Description</label>
+                        <textarea class="nhsuk-textarea nhsuk-input--width-30" id="af-description" rows="2"></textarea>
+                      </div>
+                      <div class="nhsuk-button-group" style="margin:0">
+                        <button type="submit" class="nhsuk-button nhsuk-button--small" style="margin:0">Save audience</button>
+                        <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="cancelAudienceEdit()">Cancel</button>
+                        <button type="button" id="audience-delete-btn" class="nhsuk-button nhsuk-button--warning nhsuk-button--small" style="display:none;margin:0" onclick="deleteAudience()">Delete</button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <ul class="owner-list" id="audience-list"></ul>
 
                   <!-- Schema export panel -->
                   <div class="schema-panel" id="schema-panel" style="display:none;margin-top:16px">
@@ -220,23 +271,37 @@
               </div>
               ${p.description ? `<div class="project-card-desc">${esc(p.description)}</div>` : ''}
               <div class="project-card-meta">
+                ${p.codeName || p.createdBy || p.createdAt ? `<span style="font-size:13px;color:#768692">${[p.codeName ? `Code: ${esc(p.codeName)}` : '', p.createdBy ? `Created by ${esc(p.createdBy)}` : '', p.createdAt ? esc(formatDate(p.createdAt)) : ''].filter(Boolean).join(' &middot; ')}</span><br>` : ''}
                 ${contactName ? `<strong>Contact:</strong> ${esc(contactName)}${c.jobTitle ? `, ${esc(c.jobTitle)}` : ''}${c.email ? ` &mdash; <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}<br>` : ''}
                 <strong>Features:</strong> ${featureCount} &nbsp; <strong>Requirements:</strong> ${reqCount}
               </div>
               ${p.links ? `<div class="rendered-md" style="font-size:14px;margin-top:10px">${marked.parse(p.links)}</div>` : ''}
-              <div class="nhsuk-button-group">
+              <div class="nhsuk-button-group" style="margin-top:16px">
                 ${!isCurrent ? `<button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" onclick="setCurrentProject(${p.id})">Set as current</button>` : ''}
                 <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" onclick="editProject(${p.id})">Edit</button>
-                <a href="index.html">Open dashboard</a>
+                <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" onclick="openDashboard(${p.id})">Open dashboard</button>
               </div>
             </div>`;
         }).join('');
+      }
+
+      function formatDate(iso) {
+        if (!iso) return '';
+        const [y, m, d] = iso.split('-');
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
       }
 
       function setCurrentProject(id) {
         data.currentProjectId = id;
         saveData(data);
         populate();
+      }
+
+      function openDashboard(id) {
+        data.currentProjectId = id;
+        saveData(data);
+        window.location.href = 'index.html';
       }
 
       function editProject(id) {
@@ -253,8 +318,17 @@
         document.getElementById('f-links').value       = p.links       || '';
         document.getElementById('form-heading').textContent = `Edit: ${p.name}`;
         document.getElementById('delete-btn').style.display = p.id === data.currentProjectId ? 'none' : 'inline-block';
+        document.getElementById('project-create-meta').style.display = 'none';
+        const metaParts = [
+          p.codeName  ? `Code name: ${p.codeName}` : '',
+          p.createdBy ? `Created by: ${p.createdBy}` : '',
+          p.createdAt ? `Date: ${formatDate(p.createdAt)}` : '',
+        ].filter(Boolean);
+        document.getElementById('project-meta-text').textContent = metaParts.join(' · ');
+        document.getElementById('project-meta-display').style.display = metaParts.length ? 'block' : 'none';
         document.getElementById('owners-section').style.display = 'block';
         populateOwners(p);
+        populateAudiences(p);
         const exp = document.getElementById('project-expander');
         exp.open = true;
         exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -269,9 +343,16 @@
         document.getElementById('owners-section').style.display = 'none';
         document.getElementById('schema-panel').style.display = 'none';
         document.getElementById('import-warning-panel').style.display = 'none';
+        document.getElementById('project-create-meta').style.display = 'block';
+        document.getElementById('project-meta-display').style.display = 'none';
+        document.getElementById('f-createdat').value = new Date().toISOString().slice(0, 10);
         document.getElementById('project-expander').open = false;
         cancelOwnerEdit();
+        cancelAudienceEdit();
       }
+
+      /* Set today's date as default for the date field on page load */
+      document.getElementById('f-createdat').value = new Date().toISOString().slice(0, 10);
 
       document.getElementById('project-form').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -294,8 +375,13 @@
           const newProject = {
             id: data.nextProjectId++,
             name, description, contact, links,
+            codeName:  document.getElementById('f-codename').value.trim(),
+            createdBy: document.getElementById('f-createdby').value.trim(),
+            createdAt: document.getElementById('f-createdat').value || new Date().toISOString().slice(0, 10),
             owners: [],
             nextOwnerId: 1,
+            audiences: [],
+            nextAudienceId: 1,
           };
           data.projects.push(newProject);
         }
@@ -436,6 +522,78 @@
         populateOwners(p);
       }
 
+      /* ── Audiences ───────────────────────────────────────────── */
+
+      function populateAudiences(p) {
+        const ul = document.getElementById('audience-list');
+        const audiences = p.audiences || [];
+        if (!audiences.length) {
+          ul.innerHTML = '<li style="color:#768692;font-size:14px;padding:8px 0">No audiences yet. Add one above.</li>';
+          return;
+        }
+        ul.innerHTML = audiences.map(a => `
+          <li class="audience-row" data-id="${a.id}">
+            <div class="audience-meta">
+              <strong>${esc(a.name)}</strong>
+              ${a.description ? `<div style="color:#425563;margin-top:2px">${esc(a.description)}</div>` : ''}
+            </div>
+            <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0;flex-shrink:0"
+                    onclick="editAudience(${a.id})">Edit</button>
+          </li>`).join('');
+      }
+
+      function editAudience(id) {
+        const p = editingProject();
+        if (!p) return;
+        const a = (p.audiences || []).find(a => a.id === id);
+        if (!a) return;
+        document.getElementById('af-id').value          = a.id;
+        document.getElementById('af-name').value        = a.name;
+        document.getElementById('af-description').value = a.description || '';
+        document.getElementById('audience-delete-btn').style.display = 'inline-block';
+        document.getElementById('af-name').focus();
+      }
+
+      function cancelAudienceEdit() {
+        document.getElementById('audience-form').reset();
+        document.getElementById('af-id').value = '';
+        document.getElementById('audience-delete-btn').style.display = 'none';
+      }
+
+      document.getElementById('audience-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const p = editingProject();
+        if (!p) return;
+        const rawId       = document.getElementById('af-id').value;
+        const name        = document.getElementById('af-name').value.trim();
+        const description = document.getElementById('af-description').value.trim();
+        if (!name) { alert('Name is required.'); document.getElementById('af-name').focus(); return; }
+        if (!p.audiences) p.audiences = [];
+        if (!p.nextAudienceId) p.nextAudienceId = (p.audiences.reduce((m, a) => Math.max(m, a.id), 0) + 1);
+        if (rawId) {
+          const a = p.audiences.find(a => a.id === parseInt(rawId));
+          if (a) { a.name = name; a.description = description; }
+        } else {
+          p.audiences.push({ id: p.nextAudienceId++, name, description });
+        }
+        saveData(data);
+        cancelAudienceEdit();
+        populateAudiences(p);
+      });
+
+      function deleteAudience() {
+        const p = editingProject();
+        if (!p) return;
+        const id   = parseInt(document.getElementById('af-id').value);
+        const name = document.getElementById('af-name').value || 'this audience';
+        if (!id) return;
+        if (!confirm(`Delete audience "${name}"?`)) return;
+        p.audiences = (p.audiences || []).filter(a => a.id !== id);
+        saveData(data);
+        cancelAudienceEdit();
+        populateAudiences(p);
+      }
+
       /* ── Schema export ──────────────────────────────────────── */
 
       function schemaPromptText() {
@@ -463,6 +621,9 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
   "project": {
     "name": "Project name",
     "description": "Short description of the project",
+    "codeName": "community-v2",
+    "createdBy": "First Last",
+    "createdAt": "2026-01-15",
     "contact": {
       "firstName": "",
       "lastName": "",
@@ -472,6 +633,10 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
     "links": "[Figma](https://figma.com)",
     "owners": [
       { "firstName": "First", "lastName": "Last", "email": "email@example.com" }
+    ],
+    "audiences": [
+      { "name": "Members", "description": "Registered community members" },
+      { "name": "Admins", "description": "Community administrators" }
     ]
   },
   "statuses": [
@@ -521,6 +686,8 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
 ## Rules
 
 - \`projectId\` — set to \`null\` for a new project, or the numeric ID of an existing project to overwrite it
+- \`codeName\`, \`createdBy\`, \`createdAt\` — set once at creation; \`createdAt\` is ISO date (YYYY-MM-DD)
+- \`audiences\` — project-level list of user groups this project serves; each audience has a \`name\` (required) and optional \`description\`
 - \`items\` — list features first, then requirements; requirements must reference a feature by its exact \`name\` via the \`feature\` field
 - \`status\` values must match names in the \`statuses\` array
 - \`colour\` must be one of: \`grey\`, \`blue\`, \`green\`, \`yellow\`, \`red\`, \`purple\`, \`aqua-green\`, \`pink\`, \`orange\`, \`white\`
@@ -587,9 +754,13 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
           project: {
             name: p.name,
             description: p.description || '',
+            codeName: p.codeName || '',
+            createdBy: p.createdBy || '',
+            createdAt: p.createdAt || '',
             contact: p.contact || {},
             links: p.links || '',
             owners: p.owners || [],
+            audiences: p.audiences || [],
           },
           statuses: data.statuses,
           items: exportItems,
@@ -624,7 +795,7 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
         const slug = nameSlug(p.name);
         const bakData = {
           exportVersion: 2, exportedAt: now.toISOString(), projectExport: true, projectId: p.id,
-          project: { name: p.name, description: p.description || '', contact: p.contact || {}, links: p.links || '', owners: p.owners || [] },
+          project: { name: p.name, description: p.description || '', codeName: p.codeName || '', createdBy: p.createdBy || '', createdAt: p.createdAt || '', contact: p.contact || {}, links: p.links || '', owners: p.owners || [], audiences: p.audiences || [] },
           statuses: data.statuses,
           items: data.items.filter(i => i.projectId === p.id),
         };
@@ -634,10 +805,15 @@ Share this with an AI assistant to generate a project structure. Paste the AI's 
         const ip = imported.project || {};
         p.name        = ip.name        || p.name;
         p.description = ip.description || '';
+        p.codeName    = p.codeName  || ip.codeName  || '';
+        p.createdBy   = p.createdBy || ip.createdBy || '';
+        p.createdAt   = p.createdAt || ip.createdAt || '';
         p.contact     = ip.contact     || {};
         p.links       = ip.links       || '';
-        p.owners      = (ip.owners || []).map((o, i) => ({ id: i + 1, ...o }));
-        p.nextOwnerId = p.owners.length + 1;
+        p.owners        = (ip.owners || []).map((o, i) => ({ id: i + 1, ...o }));
+        p.nextOwnerId   = p.owners.length + 1;
+        p.audiences     = (ip.audiences || []).map((a, i) => ({ id: i + 1, name: a.name, description: a.description || '' }));
+        p.nextAudienceId = p.audiences.length + 1;
 
         /* 3. Merge statuses */
         (imported.statuses || []).forEach(s => {

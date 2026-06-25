@@ -220,18 +220,18 @@
           </div>
 
           <div class="nhsuk-form-group">
-            <label class="nhsuk-label nhsuk-label--s" for="f-links">Links</label>
+            <label class="nhsuk-label nhsuk-label--s" for="f-links">Links 🔗</label>
             <div class="nhsuk-hint">Supports markdown e.g. <code>[Figma](https://figma.com)</code></div>
             <textarea class="nhsuk-textarea" id="f-links" rows="3"></textarea>
           </div>
 
           <div class="nhsuk-form-group">
-            <label class="nhsuk-label nhsuk-label--s" for="f-design-thinking">Design thinking</label>
+            <label class="nhsuk-label nhsuk-label--s" for="f-design-thinking">Design thinking 💡</label>
             <textarea class="nhsuk-textarea" id="f-design-thinking" rows="4"></textarea>
           </div>
 
           <div class="nhsuk-form-group">
-            <label class="nhsuk-label nhsuk-label--s" for="f-open-questions">Open questions</label>
+            <label class="nhsuk-label nhsuk-label--s" for="f-open-questions">Open questions 🤔</label>
             <textarea class="nhsuk-textarea" id="f-open-questions" rows="4"></textarea>
           </div>
 
@@ -556,10 +556,10 @@
         ].join('');
 
         const body = [
-          textSection('Design thinking', renderMd(item.designThinking)),
-          textSection('Open questions',  renderMd(item.openQuestions)),
-          textSection('Why we love it',  renderMd(item.why)),
-          textSection('Links',           renderMd(item.links)),
+          textSection('Design thinking 💡', renderMd(item.designThinking)),
+          textSection('Open questions 🤔',  renderMd(item.openQuestions)),
+          textSection('Why we ❤️ it',       renderMd(item.why)),
+          textSection('Links 🔗',           renderMd(item.links)),
         ].join('');
 
         return `<dl class="nhsuk-summary-list">${rows}</dl>${body}`;
@@ -1018,9 +1018,9 @@
             lines.push(`| Status | ${sl} |`);
             if (r.owner)    lines.push(`| Owner | ${r.owner} |`);
             lines.push(`| Spec | ${sp} |`, '');
-            if (r.designThinking) lines.push('**Design thinking**', '', r.designThinking, '');
-            if (r.openQuestions)  lines.push('**Open questions**',  '', r.openQuestions,  '');
-            if (r.why)            lines.push('**Why we love it**',  '', r.why,            '');
+            if (r.designThinking) lines.push('**Design thinking 💡**', '', r.designThinking, '');
+            if (r.openQuestions)  lines.push('**Open questions 🤔**',  '', r.openQuestions,  '');
+            if (r.why)            lines.push('**Why we ❤️ it**',       '', r.why,            '');
           });
           lines.push('---', '');
         });
@@ -1030,9 +1030,9 @@
           u.forEach((r, ri) => {
             const sl = r.status === 'In progress' && r.progress > 0 ? `${r.status} (${r.progress}%)` : r.status;
             lines.push(`### U.${ri + 1} ${r.name}`, '', `**Status:** ${sl}`, '');
-            if (r.designThinking) lines.push('**Design thinking**', '', r.designThinking, '');
-            if (r.openQuestions)  lines.push('**Open questions**',  '', r.openQuestions,  '');
-            if (r.why)            lines.push('**Why we love it**',  '', r.why,            '');
+            if (r.designThinking) lines.push('**Design thinking 💡**', '', r.designThinking, '');
+            if (r.openQuestions)  lines.push('**Open questions 🤔**',  '', r.openQuestions,  '');
+            if (r.why)            lines.push('**Why we ❤️ it**',       '', r.why,            '');
           });
         }
         const content  = lines.join('\n');

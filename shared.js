@@ -282,6 +282,7 @@ function initNav(activePage) {
     { id: 'projects', label: 'Projects',  href: 'projects.html' },
     { id: 'statuses', label: 'Statuses',  href: 'statuses.html' },
     { id: 'atlas',    label: 'Atlas',     href: 'atlas.html'    },
+    { id: 'about',    label: 'About',     href: 'about.html'    },
   ];
   const listItems = pages.map(p => `
     <li class="nhsuk-header__navigation-item">
