@@ -106,6 +106,16 @@
                   <option value="">All owners</option>
                 </select>
               </div>
+              <div class="nhsuk-form-group">
+                <label class="nhsuk-label nhsuk-u-visually-hidden" for="sort-by">Sort</label>
+                <select class="nhsuk-select" id="sort-by" onchange="applyFilters()">
+                  <option value="">Default order</option>
+                  <option value="name">Feature name A–Z</option>
+                  <option value="status">Status A–Z</option>
+                  <option value="owner">Owner A–Z</option>
+                  <option value="updated">Last updated</option>
+                </select>
+              </div>
               <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" id="clear-filters" style="display:none" onclick="clearFilters()">Clear filters</button>
             </div>
 
@@ -115,6 +125,7 @@
                   <tr class="nhsuk-table__row">
                     <th class="nhsuk-table__header" scope="col" style="width:40px"></th>
                     <th class="nhsuk-table__header" scope="col">Item</th>
+                    <th class="nhsuk-table__header" scope="col" style="width:120px" title="🧠 Description · 💡 Design thinking · 🤔 Open questions · ❤️ Why · 🔗 Links">Content</th>
                     <th class="nhsuk-table__header" scope="col">Status</th>
                     <th class="nhsuk-table__header" scope="col">Owner</th>
                     <th class="nhsuk-table__header" scope="col">Last updated</th>
@@ -175,7 +186,7 @@
           </div>
 
           <div class="nhsuk-form-group">
-            <label class="nhsuk-label nhsuk-label--s" for="f-description">Description</label>
+            <label class="nhsuk-label nhsuk-label--s" for="f-description">Description 🧠</label>
             <textarea class="nhsuk-textarea" id="f-description" rows="3"></textarea>
           </div>
 
@@ -309,6 +320,7 @@
       let filterStatus = '';
       let filterOwner  = '';
       let filterSearch = '';
+      let sortBy       = '';
 
       function proj()     { return getCurrentProject(data); }
       function statuses() { return data.statuses; }
@@ -422,6 +434,7 @@
         filterStatus = document.getElementById('filter-status').value;
         filterOwner  = document.getElementById('filter-owner').value;
         filterSearch = document.getElementById('filter-search').value.trim();
+        sortBy       = document.getElementById('sort-by').value;
         document.getElementById('clear-filters').style.display =
           (filterStatus || filterOwner || filterSearch) ? 'inline-block' : 'none';
         renderTable();
@@ -449,31 +462,75 @@
         const breakdownHtml = statuses()
           .filter(s => statusCounts[s.name])
           .map(s => `<strong class="nhsuk-tag nhsuk-tag--${esc(s.colour)}">${esc(s.name)} ${statusCounts[s.name]}</strong>`).join('');
+
+        const c = p.contact || {};
+        const contactName = [c.firstName, c.lastName].filter(Boolean).join(' ');
+        const contactLine = [contactName, c.jobTitle].filter(Boolean).join(', ');
+        const contactEmail = c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '';
+
+        const linksHtml = p.links
+          ? marked.parse(p.links).replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ')
+          : '';
+
+        const rightCol = (p.description || contactName || linksHtml) ? `
+          <div style="flex:1;min-width:280px;padding-left:32px;border-left:1px solid #d8dde0">
+            ${p.description ? `<p class="nhsuk-body" style="margin-bottom:${(contactName || linksHtml) ? '16px' : '0'}">${esc(p.description)}</p>` : ''}
+            ${contactLine || contactEmail ? `
+              <p class="nhsuk-body-s" style="margin-bottom:${linksHtml ? '16px' : '0'};color:#425563">
+                <strong style="display:block;color:#212b32;margin-bottom:2px">Primary contact</strong>
+                ${contactLine ? esc(contactLine) : ''}${contactLine && contactEmail ? ' &mdash; ' : ''}${contactEmail}
+              </p>` : ''}
+            ${linksHtml ? `
+              <p class="nhsuk-body-s" style="margin-bottom:4px"><strong>Useful links</strong></p>
+              <div class="rendered-md" style="font-size:15px">${linksHtml}</div>` : ''}
+          </div>` : '';
+
         document.getElementById('dashboard').innerHTML = `
-          <table class="nhsuk-table" style="max-width:420px;margin-bottom:16px">
-            <tbody class="nhsuk-table__body">
-              <tr class="nhsuk-table__row">
-                <th scope="row" class="nhsuk-table__header">Features</th>
-                <td class="nhsuk-table__cell">${feats.length}</td>
-              </tr>
-              <tr class="nhsuk-table__row">
-                <th scope="row" class="nhsuk-table__header">Requirements</th>
-                <td class="nhsuk-table__cell">${reqs.length}</td>
-              </tr>
-              <tr class="nhsuk-table__row">
-                <th scope="row" class="nhsuk-table__header">Unclassified</th>
-                <td class="nhsuk-table__cell">${unclassified.length}</td>
-              </tr>
-              <tr class="nhsuk-table__row">
-                <th scope="row" class="nhsuk-table__header">Team members</th>
-                <td class="nhsuk-table__cell">${p.owners ? p.owners.length : 0}</td>
-              </tr>
-            </tbody>
-          </table>
-          ${breakdownHtml ? `<div class="status-breakdown">${breakdownHtml}</div>` : ''}`;
+          <div style="display:flex;gap:0;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap">
+            <div style="min-width:280px">
+              <table class="nhsuk-table" style="max-width:420px;margin-bottom:16px">
+                <tbody class="nhsuk-table__body">
+                  <tr class="nhsuk-table__row">
+                    <th scope="row" class="nhsuk-table__header">Features</th>
+                    <td class="nhsuk-table__cell">${feats.length}</td>
+                  </tr>
+                  <tr class="nhsuk-table__row">
+                    <th scope="row" class="nhsuk-table__header">Requirements</th>
+                    <td class="nhsuk-table__cell">${reqs.length}</td>
+                  </tr>
+                  <tr class="nhsuk-table__row">
+                    <th scope="row" class="nhsuk-table__header">Unclassified</th>
+                    <td class="nhsuk-table__cell">${unclassified.length}</td>
+                  </tr>
+                  <tr class="nhsuk-table__row">
+                    <th scope="row" class="nhsuk-table__header">Team members</th>
+                    <td class="nhsuk-table__cell">${p.owners ? p.owners.length : 0}</td>
+                  </tr>
+                </tbody>
+              </table>
+              ${breakdownHtml ? `<div class="status-breakdown">${breakdownHtml}</div>` : ''}
+            </div>
+            ${rightCol}
+          </div>`;
       }
 
       function render() { renderDashboard(); renderTable(); renderSections(); }
+
+      function hasContent(s) {
+        if (!s) return false;
+        const t = s.trim();
+        return t.length > 0 && t !== '—' && t !== '-';
+      }
+
+      function contentIndicators(item) {
+        const i = (emoji, label, exists) =>
+          exists ? `<span title="${label}" style="font-size:14px;margin-right:1px">${emoji}</span>` : '';
+        return i('🧠', 'Description',      hasContent(item.description))
+             + i('💡', 'Design thinking',  hasContent(item.designThinking))
+             + i('🤔', 'Open questions',   hasContent(item.openQuestions))
+             + i('❤️', 'Why we love it',   hasContent(item.why))
+             + i('🔗', 'Links',            hasContent(item.links));
+      }
 
       function reqRow(r, featureId) {
         return `
@@ -486,6 +543,7 @@
             <td class="nhsuk-table__cell" style="padding-left:8px">
               <a href="#item-${r.id}">${esc(r.name)}</a>
             </td>
+            <td class="nhsuk-table__cell" style="white-space:nowrap">${contentIndicators(r)}</td>
             <td class="nhsuk-table__cell">${badge(r)}</td>
             <td class="nhsuk-table__cell">${esc(r.owner) || '—'}</td>
             <td class="nhsuk-table__cell time-ago" title="${fmtDate(r.updatedAt)}">${timeAgo(r.updatedAt)}</td>
@@ -500,7 +558,24 @@
         let html = '';
         let totalVisible = 0;
 
-        getFeatures().forEach(f => {
+        let features = getFeatures();
+        if (sortBy === 'name') {
+          features = [...features].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (sortBy === 'status') {
+          features = [...features].sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+        } else if (sortBy === 'owner') {
+          features = [...features].sort((a, b) => (a.owner || '').localeCompare(b.owner || ''));
+        } else if (sortBy === 'updated') {
+          features = [...features].sort((a, b) => {
+            const latest = f => Math.max(
+              f.updatedAt ? new Date(f.updatedAt).getTime() : 0,
+              ...getReqs(f.id).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0)
+            );
+            return latest(b) - latest(a);
+          });
+        }
+
+        features.forEach(f => {
           const allReqs    = getReqs(f.id);
           const visReqs    = filtering ? allReqs.filter(matchesFilters) : allReqs;
           const featureVis = !filtering || matchesFilters(f);
@@ -514,7 +589,7 @@
                   onmousedown="this.closest('tr').draggable=true"
                   onmouseup="this.closest('tr').draggable=false"
                   title="Drag to reorder">⠿</td>
-              <td class="nhsuk-table__cell" colspan="4">
+              <td class="nhsuk-table__cell" colspan="5">
                 <a href="#item-${f.id}"><strong>${esc(f.name)}</strong></a>
                 ${f.description ? `<span style="font-weight:normal;color:#425563;font-size:14px"> — ${esc(f.description)}</span>` : ''}
               </td>
@@ -528,7 +603,7 @@
           } else {
             html += `<tr class="nhsuk-table__row" data-type="req" data-feature-id="${f.id}">
               <td class="nhsuk-table__cell"></td>
-              <td class="nhsuk-table__cell" colspan="4" style="padding-left:24px;color:#768692;font-size:14px">
+              <td class="nhsuk-table__cell" colspan="5" style="padding-left:24px;color:#768692;font-size:14px">
                 ${filtering ? 'No matching requirements' : 'No requirements'}
               </td>
               <td class="nhsuk-table__cell"></td></tr>`;
@@ -541,7 +616,7 @@
           totalVisible++;
           html += `<tr class="nhsuk-table__row feature-row" data-type="unclassified">
             <td class="nhsuk-table__cell"></td>
-            <td class="nhsuk-table__cell" colspan="4">
+            <td class="nhsuk-table__cell" colspan="5">
               <a href="#unclassified"><strong>Unclassified requirements</strong></a>
             </td>
             <td class="nhsuk-table__cell"></td></tr>`;
@@ -549,7 +624,7 @@
         }
 
         if (filtering && totalVisible === 0) {
-          html = `<tr class="nhsuk-table__row"><td class="nhsuk-table__cell" colspan="6" style="color:#768692;text-align:center;padding:24px">No items match your filters.</td></tr>`;
+          html = `<tr class="nhsuk-table__row"><td class="nhsuk-table__cell" colspan="7" style="color:#768692;text-align:center;padding:24px">No items match your filters.</td></tr>`;
         }
 
         document.getElementById('tracker-tbody').innerHTML = html;
@@ -562,7 +637,7 @@
 
         const rows = [
           parentFeature ? dlRow('Feature', `<a href="#item-${parentFeature.id}">${esc(parentFeature.name)}</a>`) : '',
-          dlRow('Description',  renderMd(item.description)),
+          dlRow('Description 🧠',  renderMd(item.description)),
           dlRow('Audiences',    item.audiences ? esc(item.audiences) : '<span style="color:#768692">—</span>'),
           dlRow('Location',     item.location  ? esc(item.location)  : '<span style="color:#768692">—</span>'),
           dlRow('Status',       badge(item)),
