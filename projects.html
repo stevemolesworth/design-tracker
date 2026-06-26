@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#005eb8" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nhsuk-frontend@10.5.2/dist/nhsuk/nhsuk-frontend.min.css" />
     <style>
-      .nhsuk-width-container { max-width: 1680px; }
+      .nhsuk-width-container { max-width: 1680px; padding-left: 32px !important; padding-right: 32px !important; }
       .project-card { border: 1px solid #d8dde0; padding: 20px 24px; margin-bottom: 16px; background: #fff; }
       .project-card.is-current { border-left: 4px solid #005eb8; }
       .project-card-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
@@ -28,6 +28,9 @@
       .audience-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #d8dde0; margin-bottom: 6px; }
       .audience-row:hover { border-color: #005eb8; }
       .audience-meta { flex: 1; font-size: 14px; }
+      .confirm-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; }
+      .confirm-modal-backdrop.is-open { display: flex; }
+      .confirm-modal { background: #fff; padding: 32px; max-width: 540px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
       .schema-panel { background: #fff; border: 1px solid #d8dde0; padding: 20px 24px; margin-bottom: 24px; }
       .schema-panel pre { background: #f0f4f5; border: 1px solid #d8dde0; padding: 16px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 12px 0; }
       .copy-success { color: #007f3b; font-weight: 600; font-size: 14px; margin-left: 8px; display: none; }
@@ -125,7 +128,7 @@
                   <hr class="nhsuk-section-break nhsuk-section-break--m nhsuk-section-break--visible" style="margin:24px 0 20px" />
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
                     <h3 class="nhsuk-heading-s" style="margin:0">Team / owners</h3>
-                    <div class="nhsuk-button-group" style="margin:0">
+                    <div class="nhsuk-button-group" style="margin:0;gap:12px">
                       <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="toggleSchemaPanel()">Export AI schema prompt</button>
                       <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="showProjectImportWarning()">Import JSON</button>
                       <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="downloadProjectJSON()">Export JSON</button>
@@ -148,7 +151,7 @@
                           <label class="nhsuk-label nhsuk-label--s" for="of-email">Email</label>
                           <input class="nhsuk-input" id="of-email" type="email" autocomplete="off" />
                         </div>
-                        <div class="nhsuk-button-group" style="margin:0;flex-shrink:0">
+                        <div class="nhsuk-button-group" style="margin:0;flex-shrink:0;gap:12px">
                           <button type="submit" class="nhsuk-button nhsuk-button--small" style="margin:0">Save owner</button>
                           <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="cancelOwnerEdit()">Cancel</button>
                           <button type="button" id="owner-delete-btn" class="nhsuk-button nhsuk-button--warning nhsuk-button--small" style="display:none;margin:0" onclick="deleteOwner()">Delete</button>
@@ -174,7 +177,7 @@
                         <label class="nhsuk-label nhsuk-label--s" for="af-description">Description</label>
                         <textarea class="nhsuk-textarea nhsuk-input--width-30" id="af-description" rows="2"></textarea>
                       </div>
-                      <div class="nhsuk-button-group" style="margin:0">
+                      <div class="nhsuk-button-group" style="margin:0;gap:12px">
                         <button type="submit" class="nhsuk-button nhsuk-button--small" style="margin:0">Save audience</button>
                         <button type="button" class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" style="margin:0" onclick="cancelAudienceEdit()">Cancel</button>
                         <button type="button" id="audience-delete-btn" class="nhsuk-button nhsuk-button--warning nhsuk-button--small" style="display:none;margin:0" onclick="deleteAudience()">Delete</button>
@@ -223,6 +226,23 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <!-- Delete project confirmation modal -->
+    <div class="confirm-modal-backdrop" id="delete-project-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-heading">
+      <div class="confirm-modal">
+        <h2 class="nhsuk-heading-m" id="delete-modal-heading">Delete project?</h2>
+        <div class="nhsuk-warning-callout">
+          <h3 class="nhsuk-warning-callout__label">
+            <span role="text"><span class="nhsuk-u-visually-hidden">Important: </span>This cannot be undone</span>
+          </h3>
+          <p id="delete-modal-msg" style="margin-bottom:0"></p>
+        </div>
+        <div class="nhsuk-button-group" style="gap:12px;margin-bottom:0">
+          <button class="nhsuk-button nhsuk-button--warning" onclick="confirmDeleteProject()">Delete project</button>
+          <button class="nhsuk-button nhsuk-button--secondary" onclick="cancelDeleteModal()">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <footer class="nhsuk-footer" role="contentinfo">
@@ -295,7 +315,7 @@
               <div class="nhsuk-button-group" style="margin-top:16px">
                 ${!isCurrent ? `<button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" onclick="setCurrentProject(${p.id})">Set as current</button>` : ''}
                 <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" onclick="editProject(${p.id})">Edit</button>
-                <button class="nhsuk-button nhsuk-button--secondary nhsuk-button--small" onclick="openDashboard(${p.id})">Open dashboard</button>
+                <button class="nhsuk-button nhsuk-button--small" onclick="openDashboard(${p.id})">Open in dashboard</button>
               </div>
             </div>`;
         }).join('');
@@ -410,12 +430,26 @@
         const id   = parseInt(document.getElementById('f-id').value);
         const name = document.getElementById('f-name').value || 'this project';
         if (!id || id === data.currentProjectId) return;
-        if (!confirm(`Delete project "${name}"?\n\nAll features and requirements in this project will be permanently deleted.`)) return;
+        const featureCount = data.items.filter(i => i.projectId === id && i.type === 'feature').length;
+        const reqCount     = data.items.filter(i => i.projectId === id && i.type === 'requirement').length;
+        document.getElementById('delete-modal-msg').innerHTML =
+          `Deleting <strong>${esc(name)}</strong> will permanently remove all of its data — including ${featureCount} feature${featureCount !== 1 ? 's' : ''} and ${reqCount} requirement${reqCount !== 1 ? 's' : ''}.`;
+        document.getElementById('delete-project-modal').classList.add('is-open');
+      }
+
+      function confirmDeleteProject() {
+        const id = parseInt(document.getElementById('f-id').value);
+        if (!id) return;
         data.projects = data.projects.filter(p => p.id !== id);
         data.items    = data.items.filter(i => i.projectId !== id);
         saveData(data);
+        cancelDeleteModal();
         cancelEdit();
         populate();
+      }
+
+      function cancelDeleteModal() {
+        document.getElementById('delete-project-modal').classList.remove('is-open');
       }
 
       populate();
